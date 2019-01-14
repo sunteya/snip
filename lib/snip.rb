@@ -1,4 +1,5 @@
 require "snip/version"
+require "snip/paper"
 
 module Snip
   class Error < StandardError; end
