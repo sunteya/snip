@@ -1,4 +1,5 @@
 require "yaml"
+require "pathname"
 
 module Snip
   class Paper
@@ -17,6 +18,7 @@ module Snip
         "//", # C
         "--", # SQL
         "*",  # CSS?
+        " ",  # HTML?
       ].each do |commet_keyword|
         if (meta = parse_by_commet(lines, commet_keyword))
           self.meta = meta
@@ -52,6 +54,28 @@ module Snip
       meta["CHANGELOG"] || []
     end
 
+    def files
+      return @files_mapping if defined?(@files_mapping)
+      root = Pathname.pwd
+      dir = Pathname.new(path).dirname
+
+      @files_mapping = {}
+      @files_mapping[Pathname.new(path).expand_path.relative_path_from(root)] = gist_file_pattern
+
+      [ meta["FILES"] ].flatten.compact.each do |file_pattern|
+        pattern, target = file_pattern.split("=>")
+        paths = Pathname.glob(File.expand_path("./**", dir))
+
+        if target && paths.any?
+          @files_mapping[paths.first.expand_path.relative_path_from(root)] = target.strip
+        else
+          paths.each { |path| @files_mapping[path.expand_path.relative_path_from(root)] ||= nil }
+        end
+      end
+
+      @files_mapping
+    end
+
     def valid?
       self.meta && self.meta.any?
     end
@@ -61,7 +85,7 @@ module Snip
       paths.map do |path|
         paper = Paper.new(path.chomp)
         paper if paper.valid?
-      end.compact
+      end.compact.sort_by { |paper| [ paper.gist_repo, paper.path ] }
     end
   end
 end
