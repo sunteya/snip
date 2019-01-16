@@ -1,5 +1,7 @@
 require "thor"
 require "snip"
+require_relative "command_outdated"
+require "rainbow"
 
 module Snip
   class CLI < Thor
@@ -7,10 +9,8 @@ module Snip
 
     desc "list", "list all of the snip file in current folder"
     def list
-      papers = Paper.scan
-      papers.each do |paper|
+      Paper.scan.each do |paper|
         print "#{paper.gist_repo}"
-        print " [#{paper.gist_file_pattern}]" if paper.gist_file_pattern
         print " - #{paper.changelogs[0]}" if paper.changelogs.any?
         puts ""
 
@@ -23,5 +23,7 @@ module Snip
         puts ""
       end
     end
+
+    include CommandOutdated
   end
 end
