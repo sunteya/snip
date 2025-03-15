@@ -2,29 +2,20 @@ require "thor"
 
 require_relative "paper"
 require_relative "command_outdated"
-require "rainbow"
+require_relative "command_download"
+require_relative "command_download2"
+require_relative "thor_upload"
+require_relative "thor_list"
 
 module Snip
   class CLI < Thor
     map "ls" => "list"
 
-    desc "list", "list all of the snip file in current folder"
-    def list
-      Paper.scan.each do |paper|
-        print "#{paper.gist_repo}"
-        print " - #{paper.changelogs[0]}" if paper.changelogs.any?
-        puts ""
-
-        paper.files.each do |path, pattern|
-          print " - #{path}"
-          print " => #{pattern}" if pattern
-          puts ""
-        end
-
-        puts ""
-      end
-    end
+    include ThorList
+    include ThorUpload
 
     include CommandOutdated
+    include CommandDownload
+    include CommandDownload2
   end
 end

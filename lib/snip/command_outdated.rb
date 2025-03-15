@@ -1,5 +1,5 @@
 require "rainbow"
-require_relative "paper"
+require_relative "local_paper"
 require_relative "gist"
 
 module Snip
@@ -8,7 +8,7 @@ module Snip
       base.class_eval do
         desc "outdated", "checks for outdated snips"
         def outdated
-          paper_mapping = Hash[Paper.scan.map do |paper|
+          paper_mapping = Hash[LocalPaper.scan.map do |paper|
             print "Fetching metadata from GIST "
             print "."
             puts ""

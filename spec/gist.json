@@ -1,0 +1,82 @@
+{
+  "url": "https://api.github.com/gists/4d42436ba7cc1fb8a3500e3b65f791af",
+  "forks_url": "https://api.github.com/gists/4d42436ba7cc1fb8a3500e3b65f791af/forks",
+  "commits_url": "https://api.github.com/gists/4d42436ba7cc1fb8a3500e3b65f791af/commits",
+  "id": "4d42436ba7cc1fb8a3500e3b65f791af",
+  "node_id": "G_kwDOAAIgytoAIDRkNDI0MzZiYTdjYzFmYjhhMzUwMGUzYjY1Zjc5MWFm",
+  "git_pull_url": "https://gist.github.com/4d42436ba7cc1fb8a3500e3b65f791af.git",
+  "git_push_url": "https://gist.github.com/4d42436ba7cc1fb8a3500e3b65f791af.git",
+  "html_url": "https://gist.github.com/sunteya/4d42436ba7cc1fb8a3500e3b65f791af",
+  "files": {
+    "DisposableRequest.ts": {
+      "filename": "DisposableRequest.ts",
+      "type": "video/MP2T",
+      "language": "TypeScript",
+      "raw_url": "https://gist.githubusercontent.com/sunteya/4d42436ba7cc1fb8a3500e3b65f791af/raw/74103b57fc1ce0856695ba2889561e460306308a/DisposableRequest.ts",
+      "size": 1147,
+      "truncated": false,
+      "content": "// SNIP: 4d42436ba7cc1fb8a3500e3b65f791af\nimport _ from \"lodash\"\nimport { defer, Subscription, type Observer, type Subscribable, type Unsubscribable } from \"rxjs\"\nimport { RxSimple } from \"./RxSimple\"\n\nexport abstract class DisposableRequest<T> {\n  aborter = new AbortController()\n  loading = true\n  requestId = _.uniqueId('request-')\n\n  simple!: RxSimple<T>\n  activeSubscriptions = 0\n  onSubscribe?: (observable: Subscribable<T>) => void\n\n  abstract request(): Promise<T>\n\n  subscribe(observer: Partial<Observer<T>>): Unsubscribable {\n    this.activeSubscriptions += 1\n\n    if (this.simple == null) {\n      this.simple = new RxSimple<T>()\n      this.onSubscribe?.(this)\n      defer(() => this.request()).subscribe(this.simple)\n    }\n\n    const subscription = this.simple.subscribe(observer)\n\n    return new Subscription(() => {\n      subscription.unsubscribe()\n      this.activeSubscriptions -= 1\n\n      if (this.activeSubscriptions <= 0) {\n        this.cancel()\n      }\n    })\n  }\n\n  abstract perform(data?: any): Subscribable<T>\n\n  cancel() {\n    if (!this.loading) {\n      return\n    }\n\n    this.loading = false\n    this.aborter.abort()\n  }\n}\n",
+      "encoding": "utf-8"
+    },
+    "KlassCache.ts": {
+      "filename": "KlassCache.ts",
+      "type": "video/MP2T",
+      "language": "TypeScript",
+      "raw_url": "https://gist.githubusercontent.com/sunteya/4d42436ba7cc1fb8a3500e3b65f791af/raw/297633dab50ee62c5a2c52d63169b18790918851/KlassCache.ts",
+      "size": 1454,
+      "truncated": false,
+      "content": "// SNIP: 4d42436ba7cc1fb8a3500e3b65f791af\nexport class KlassCache<T> {\n  caches = new Map<any, Map<string, any>>()\n\n  clear() {\n    this.caches.clear()\n  }\n\n  sweepAll(klass: new (...args: any[]) => T) {\n    this.caches.delete(klass)\n  }\n\n  sweep<K extends new (...args: any[]) => T>(klass: K, ...args: ConstructorParameters<K>) {\n    if (!this.caches.has(klass)) {\n      return\n    }\n\n    const cache = this.caches.get(klass)!\n    const key = JSON.stringify(args)\n    cache.delete(key)\n  }\n\n  instance<K extends new (...args: any[]) => InstanceType<K>>(Klass: K, ...args: ConstructorParameters<K>): InstanceType<K> {\n    if (!this.caches.has(Klass)) {\n      this.caches.set(Klass, new Map())\n    }\n\n    const cache = this.caches.get(Klass)!\n    const key = JSON.stringify(args)\n    if (cache.has(key)) {\n      return cache.get(key) as InstanceType<K>\n    } else {\n      const value = new Klass(...args)\n      cache.set(key, value)\n      return value\n    }\n  }\n\n  build<K extends new (...args: any[]) => InstanceType<K>>(klass: any, builder: (...args: ConstructorParameters<K>) => T, ...args: ConstructorParameters<K>): T {\n    if (!this.caches.has(klass)) {\n      this.caches.set(klass, new Map())\n    }\n\n    const cache = this.caches.get(klass)!\n    const key = JSON.stringify(args)\n    if (cache.has(key)) {\n      return cache.get(key)\n    } else {\n      const request = builder(...args)\n      cache.set(key, request)\n      return request\n    }\n  }\n}\n",
+      "encoding": "utf-8"
+    },
+    "PerformerList.ts": {
+      "filename": "PerformerList.ts",
+      "type": "video/MP2T",
+      "language": "TypeScript",
+      "raw_url": "https://gist.githubusercontent.com/sunteya/4d42436ba7cc1fb8a3500e3b65f791af/raw/5122efca0f9f10273c99a62e4fb41d102b74d7df/PerformerList.ts",
+      "size": 1257,
+      "truncated": false,
+      "content": "// SNIP: 4d42436ba7cc1fb8a3500e3b65f791af\nimport { type Unsubscribable } from \"rxjs\"\nimport { ref, type Ref } from \"vue\"\n\nexport interface Performable<T> {\n  setup<R>(callback?: (that: R) => void): void\n  invoke(...args: any[]): Promise<T>\n}\n\nexport class Performer<T, R, W extends Performable<T>> {\n  request!: W\n  result!: Ref<T>\n  performed = false\n\n  constructor(requestable: W) {\n    this.request = requestable\n    this.result = ref(undefined!)\n  }\n\n  setup(callback?: (that: R) => void) {\n    this.request.setup(callback)\n    return this\n  }\n\n  wait(): Ref<T> {\n    return this.result\n  }\n\n  async perform(...args: Parameters<W['invoke']>) {\n    if (this.performed) {\n      return this.result.value\n    }\n\n    this.performed = true\n    this.result.value = await this.request.invoke(...args)\n    return this.result.value\n  }\n}\n\nexport class PerformerList {\n  subscriptions: Unsubscribable[] = []\n  performers: Performer<any, any, any>[] = []\n\n  async performAll() {\n    const promises = this.performers.map(it => it.perform())\n    this.performers = []\n    await Promise.all(promises)\n  }\n\n  reset() {\n    for (const subscription of this.subscriptions) {\n      subscription.unsubscribe()\n    }\n    this.subscriptions = []\n    this.performers = []\n  }\n}\n",
+      "encoding": "utf-8"
+    },
+    "RxSimple.ts": {
+      "filename": "RxSimple.ts",
+      "type": "video/MP2T",
+      "language": "TypeScript",
+      "raw_url": "https://gist.githubusercontent.com/sunteya/4d42436ba7cc1fb8a3500e3b65f791af/raw/d3e8d12508eb1788c789b6ec42ec91ca896ba0f1/RxSimple.ts",
+      "size": 3763,
+      "truncated": false,
+      "content": "// SNIP: 4d42436ba7cc1fb8a3500e3b65f791af\nimport { Observable, ReplaySubject, Subscription, type Observer, type OperatorFunction, type Subscribable, type Unsubscribable } from \"rxjs\"\n\nexport class RxInterruptedError extends Error {\n  constructor() {\n    super('Subscription interrupted before any value or error was emitted')\n  }\n}\n\nexport class RxSingle<T> implements Observer<T> {\n  subject = new ReplaySubject<T>(1)\n  isEmitted = false\n\n  next(value: T) {\n    if (this.isEmitted) {\n      return\n    }\n\n    this.isEmitted = true\n    this.subject.next(value)\n  }\n\n  error(err: any) {\n    if (this.isEmitted) {\n      return\n    }\n\n    this.isEmitted = true\n    this.subject.error(err)\n  }\n\n  complete() {\n  }\n\n  asObservable(): Observable<T> {\n    return this.subject.asObservable()\n  }\n}\n\nexport class RxSimple<T> implements Subscribable<T> {\n  single!: RxSingle<T>\n  observable!: Observable<T>\n\n  constructor() {\n    this.single = new RxSingle<T>()\n    this.observable = this.single.asObservable()\n  }\n\n  next(value: T) {\n    this.single.next(value)\n  }\n\n  error(err: any) {\n    this.single.error(err)\n  }\n\n  complete() {\n    this.single.complete()\n  }\n\n  subscribe(observer: Partial<Observer<T>>): Unsubscribable {\n    const subscription = this.observable.subscribe(observer)\n\n    return new Subscription(() => {\n      if (!this.single.isEmitted) {\n        observer.error?.(new RxInterruptedError())\n      }\n\n      subscription.unsubscribe()\n    })\n  }\n\n  pipe(): Observable<T>\n  pipe<A>(op1: OperatorFunction<T, A>): Observable<A>\n  pipe<A, B>(op1: OperatorFunction<T, A>, op2: OperatorFunction<A, B>): Observable<B>\n  pipe<A, B, C>(op1: OperatorFunction<T, A>, op2: OperatorFunction<A, B>, op3: OperatorFunction<B, C>): Observable<C>\n  pipe<A, B, C, D>(op1: OperatorFunction<T, A>, op2: OperatorFunction<A, B>, op3: OperatorFunction<B, C>, op4: OperatorFunction<C, D>): Observable<D>\n  pipe<A, B, C, D, E>(op1: OperatorFunction<T, A>, op2: OperatorFunction<A, B>, op3: OperatorFunction<B, C>, op4: OperatorFunction<C, D>, op5: OperatorFunction<D, E>): Observable<E>\n  pipe<A, B, C, D, E, F>(op1: OperatorFunction<T, A>, op2: OperatorFunction<A, B>, op3: OperatorFunction<B, C>, op4: OperatorFunction<C, D>, op5: OperatorFunction<D, E>, op6: OperatorFunction<E, F>): Observable<F>\n  pipe<A, B, C, D, E, F, G>(op1: OperatorFunction<T, A>, op2: OperatorFunction<A, B>, op3: OperatorFunction<B, C>, op4: OperatorFunction<C, D>, op5: OperatorFunction<D, E>, op6: OperatorFunction<E, F>, op7: OperatorFunction<F, G>): Observable<G>\n  pipe<A, B, C, D, E, F, G, H>(op1: OperatorFunction<T, A>, op2: OperatorFunction<A, B>, op3: OperatorFunction<B, C>, op4: OperatorFunction<C, D>, op5: OperatorFunction<D, E>, op6: OperatorFunction<E, F>, op7: OperatorFunction<F, G>, op8: OperatorFunction<G, H>): Observable<H>\n  pipe<A, B, C, D, E, F, G, H, I>(op1: OperatorFunction<T, A>, op2: OperatorFunction<A, B>, op3: OperatorFunction<B, C>, op4: OperatorFunction<C, D>, op5: OperatorFunction<D, E>, op6: OperatorFunction<E, F>, op7: OperatorFunction<F, G>, op8: OperatorFunction<G, H>, op9: OperatorFunction<H, I>): Observable<I>\n  pipe<A, B, C, D, E, F, G, H, I>(op1: OperatorFunction<T, A>, op2: OperatorFunction<A, B>, op3: OperatorFunction<B, C>, op4: OperatorFunction<C, D>, op5: OperatorFunction<D, E>, op6: OperatorFunction<E, F>, op7: OperatorFunction<F, G>, op8: OperatorFunction<G, H>, op9: OperatorFunction<H, I>, ...operations: OperatorFunction<any, any>[]): Observable<unknown>\n  pipe(...operations: OperatorFunction<any, any>[]): Observable<any> {\n    const piped = this.observable.pipe.apply(this.observable, operations as any)\n\n    const proxy = new RxSimple()\n    proxy.single = this.single as any\n    proxy.observable = piped\n    return proxy as any\n  }\n}\n",
+      "encoding": "utf-8"
+    },
+    "[snip] RequestList.md": {
+      "filename": "[snip] RequestList.md",
+      "type": "text/markdown",
+      "language": "Markdown",
+      "raw_url": "https://gist.githubusercontent.com/sunteya/4d42436ba7cc1fb8a3500e3b65f791af/raw/bc56c4d89448a963d0b6486989809d653dab9a97/%5Bsnip%5D%20RequestList.md",
+      "size": 4,
+      "truncated": false,
+      "content": "Foo\n",
+      "encoding": "utf-8"
+    },
+    "createCacheRequest.ts": {
+      "filename": "createCacheRequest.ts",
+      "type": "video/MP2T",
+      "language": "TypeScript",
+      "raw_url": "https://gist.githubusercontent.com/sunteya/4d42436ba7cc1fb8a3500e3b65f791af/raw/5db798d4de57a17a4645b8567e1c59e845129394/createCacheRequest.ts",
+      "size": 1273,
+      "truncated": false,
+      "content": "// SNIP: 4d42436ba7cc1fb8a3500e3b65f791af\nimport { KlassCache } from '$$/lib/KlassCache'\nimport { RxInterruptedError } from '$$/lib/RxSimple'\nimport type { BaseRequest } from '$$/requests/BaseRequest'\nimport type { Unsubscribable } from 'rxjs'\nimport { ref } from 'vue'\n\nexport default function() {\n  const subscriptions = ref<Unsubscribable[]>([])\n  const cache = new KlassCache<BaseRequest<any>>()\n\n  return {\n    cache,\n    cleanup: () => {\n      cache.clear()\n      for (const subscription of subscriptions.value) { subscription.unsubscribe() }\n      subscriptions.value = []\n    },\n    request: function<K extends new (...args: any[]) => BaseRequest<any>>(Klass: K, ...args: ConstructorParameters<K>) {\n      return cache.build(Klass as any, () => {\n        const request = new Klass(...args)\n\n        request.onSubscribe = (observable) => {\n          const subscription = observable.subscribe({\n            error: (err) => {\n              if (err instanceof RxInterruptedError) {\n                // ignore continue request\n              } else {\n                cache.sweep(Klass, ...args)\n              }\n            },\n          })\n\n          subscriptions.value.push(subscription)\n        }\n\n        return request\n      }, ...args) as InstanceType<K>\n    }\n  }\n}\n",
+      "encoding": "utf-8"
+    },
+    "useRequestList.ts": {
+      "filename": "useRequestList.ts",
+      "type": "video/MP2T",
+      "language": "TypeScript",
+      "raw_url": "https://gist.githubusercontent.com/sunteya/4d42436ba7cc1fb8a3500e3b65f791af/raw/ee1a36c5ac505f4b462ff9b61f7caffe4778945d/useRequestList.ts",
+      "size": 1896,
+      "truncated": false,
+      "content": "// SNIP: 4d42436ba7cc1fb8a3500e3b65f791af\nimport type { BaseRequest, RequestContext } from \"$$/requests\"\nimport { PerformerList, Performer, type Performable } from \"./PerformerList\"\nimport { getCurrentInstance, onBeforeUnmount } from \"vue\"\nimport { onBeforeRouteLeave, onBeforeRouteUpdate } from \"vue-router\"\n\nexport class RequestList extends PerformerList {\n  ctx: RequestContext\n\n  constructor(ctx: RequestContext) {\n    super()\n    this.ctx = ctx\n  }\n\n  raw<R extends BaseRequest<any>>(request: R) {\n    type T = Awaited<ReturnType<R['request']>>\n\n    const that = this\n    const requestable = {\n      setup(callback) {\n        request.setup(that.ctx, callback as any)\n      },\n\n      invoke(...args) {\n        return new Promise((resolve, reject) => {\n          const subscription = request.perform(...args).subscribe({\n            next: data => resolve(data),\n            error: err => reject(err),\n          })\n\n          that.subscriptions.push(subscription)\n        })\n      },\n    } satisfies Performable<T>\n\n    const performer = new Performer<T, R, Performable<T>>(requestable)\n    this.performers.push(performer)\n    return performer\n  }\n\n  add<K extends new (...args: any[]) => BaseRequest<any>>(Klass: K, ...args: ConstructorParameters<K>) {\n    type T = Awaited<ReturnType<InstanceType<K>['request']>>\n    const request = new Klass(...args)\n    return this.raw(request) as Performer<T, InstanceType<K>, Performable<T>>\n  }\n}\n\nexport default function({ disposeOnRoute = true as boolean, disposeOnUnmount = true as boolean } = { }) {\n  const proxy = getCurrentInstance()!.proxy!\n  const reqs = new RequestList({ $axios: proxy.$axios })\n\n  if (disposeOnRoute) {\n    onBeforeRouteLeave(() => {\n      reqs.reset()\n    })\n\n    onBeforeRouteUpdate(() => {\n      reqs.reset()\n    })\n  }\n\n  if (disposeOnUnmount) {\n    onBeforeUnmount(() => {\n      reqs.reset()\n    })\n  }\n\n  return reqs\n}\n",
+      "encoding": "utf-8"
+    }
+  }
+}

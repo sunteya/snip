@@ -1,91 +1,88 @@
 require "yaml"
 require "pathname"
+require 'digest'
+require_relative "shell/ripgrep"
 
 module Snip
   class Paper
+    KEYWORD = "SNIP:"
+
     attr_accessor :path
     attr_accessor :meta
+    attr_accessor :digest
 
-    def initialize(path)
-      self.path = path
-      self.parse
-    end
+    def parse_block_commet(content, kw_index)
+      block_patterns = [
+        [ "/*", "*/" ],
+        [ "<!--", "-->" ],
+        [ "=begin", "=end" ],
+      ]
 
-    def parse
-      lines = File.read(path).lines
+      block_pattern = block_patterns.detect do |(prefix, suffix)|
+        content.rindex(prefix, kw_index - 1)
+      end
+      return nil if block_pattern.nil?
 
-      [ "#",  # Ruby
-        "//", # C
-        "--", # SQL
-        "*",  # CSS?
-        " ",  # HTML?
-      ].each do |commet_keyword|
-        if (meta = parse_by_commet(lines, commet_keyword))
-          self.meta = meta
-          return
+      kw_line_no = content[0..kw_index].lines.size - 1
+      kw_line_index = content.lines[0...kw_line_no].join.size
+      text_start_index = content.rindex(block_pattern[0], kw_index - 1) + block_pattern[0].length
+
+      if text_start_index < kw_line_index
+        prefix = content[kw_line_index...kw_index]
+      else
+        prefix = content[text_start_index...kw_index]
+      end
+
+      text_end_index = content.index(block_pattern[1], text_start_index) - 1
+      markdown = content[text_start_index..text_end_index].lines.each_with_object("") do |line, acc|
+        if line.start_with?(prefix)
+          acc << line[prefix.length..]
+        elsif line.strip.empty?
+          # skip
+        else
+          acc << line
         end
       end
+
+      YAML.load(markdown) rescue nil
     end
 
-    def parse_by_commet(lines, commet_keyword)
-      commet_prefix = %r/^\s*#{Regexp.escape(commet_keyword)}/
-      snip_regexp = /(#{commet_prefix}\s*)SNIP:(.*)$/
-      snip_index = lines.index { |line| line.match?(snip_regexp) }
-      return false if !snip_index
-      # start_pos = lines[0, snip_index].rindex { |line| !line.match?(commet_prefix) } || (snip_index - 1) + 1
-      start_pos = snip_index
-      stop_pos = snip_index + lines[snip_index, lines.length].index { |line| !line.match?(commet_prefix) } - 1
+    def parse_prefix_commet(content, kw_index)
+      kw_line_no = content[0..kw_index].lines.count - 1
+      prefix = content[0...kw_index].lines.last
 
-      snip_lines = lines[start_pos..stop_pos]
-      prefix_length = lines[snip_index].match(snip_regexp)[1].length
-      snip_content = snip_lines.map { |line| line.slice(prefix_length, line.length) }.join
-      YAML.load(snip_content)
+      markdown = content.lines[kw_line_no..].each_with_object("") do |line, acc|
+        if line.start_with?(prefix)
+          acc << line[prefix.length..]
+        elsif line.strip.empty?
+          # skip
+        else
+          break acc
+        end
+      end
+
+      YAML.load(markdown) rescue nil
     end
 
     def gist_repo
-      @gist_repo ||= meta["SNIP"].split("|").map(&:strip)[0]
+      @gist_repo ||= (meta["SNIP"] || "").split("|").map(&:strip)[0]
     end
 
-    def gist_file_pattern
-      @gist_file_pattern ||= meta["SNIP"].split("|").map(&:strip)[1]
+    def file_alias
+      return @file_alias if defined?(@file_alias)
+      @file_alias = (meta["SNIP"] || "").split("|").map(&:strip)[1]
+    end
+
+    def filename
+      file_alias || File.basename(self.path)
     end
 
     def changelogs
       meta["CHANGELOG"] || []
     end
 
-    def files
-      return @files_mapping if defined?(@files_mapping)
-      root = Pathname.pwd
-      dir = Pathname.new(path).dirname
-
-      @files_mapping = {}
-      @files_mapping[Pathname.new(path).expand_path.relative_path_from(root)] = gist_file_pattern
-
-      [ meta["FILES"] ].flatten.compact.each do |file_pattern|
-        pattern, target = file_pattern.split("=>")
-        paths = Pathname.glob(File.expand_path("./**", dir))
-
-        if target && paths.any?
-          @files_mapping[paths.first.expand_path.relative_path_from(root)] = target.strip
-        else
-          paths.each { |path| @files_mapping[path.expand_path.relative_path_from(root)] ||= nil }
-        end
-      end
-
-      @files_mapping
-    end
-
     def valid?
-      self.meta && self.meta.any?
-    end
-
-    def self.scan
-      paths = `rg -l SNIP:`.lines
-      paths.map do |path|
-        paper = Paper.new(path.chomp)
-        paper if paper.valid?
-      end.compact.sort_by { |paper| [ paper.gist_repo, paper.path ] }
+      !!self.meta
     end
   end
 end
