@@ -17,6 +17,10 @@ module Snip
       self.meta ||= parse_prefix_commet(content, index)
     end
 
+    # file_info = {
+    #   filename: "file.txt",
+    #   path: "path/to/file.txt",
+    # }
     def file_infos
       return @file_infos if defined?(@file_infos)
 

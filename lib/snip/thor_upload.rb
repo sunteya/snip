@@ -21,7 +21,7 @@ module Snip
           local_papers.each do |local_paper|
             print "Uploading #{local_paper.path} to #{repo} ... "
 
-            remote_paper = gist.papers.detect { |paper| paper.filename == local_paper.filename }
+            remote_paper = gist.find_paper(local_paper.filename)
             if options[:force] || is_paper_changed?(local_paper, remote_paper)
               Shell::Github.gist_upload(repo, local_paper.filename, local_paper.path)
               puts Rainbow("Success!").green
@@ -32,7 +32,8 @@ module Snip
 
             local_paper.file_infos.each do |info|
               print "Uploading #{info[:path]} to #{repo} ... "
-              if options[:force] || is_file_changed?(info, gist)
+              remote_file_json = gist.find_file_json(info[:filename])
+              if options[:force] || is_file_changed?(info, remote_file_json)
                 Shell::Github.gist_upload(repo, info[:filename], info[:path])
                 puts Rainbow("Success!").green
                 performed = true
@@ -49,21 +50,7 @@ module Snip
           end
         end
 
-        no_commands do
-          def is_paper_changed?(local_paper, remote_paper)
-            return true if remote_paper.nil?
-            local_paper.digest != remote_paper.digest
-          end
 
-          def is_file_changed?(info, gist)
-            gist_file_json = gist.find_file_json(info[:filename])
-            return true if gist_file_json.nil?
-
-            local_digest = Digest::MD5.hexdigest(File.read(info[:path]))
-            remote_digest = Digest::MD5.hexdigest(gist_file_json['content'])
-            local_digest != remote_digest
-          end
-        end
       end
     end
   end

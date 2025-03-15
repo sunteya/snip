@@ -6,38 +6,46 @@ require_relative "remote_paper"
 module Snip
   class Gist
     attr_accessor :json
+
+    attr_accessor :papers
+    attr_accessor :file_jsons
+    attr_accessor :kanban_json
+
     def initialize(json)
       self.json = json
+
+      self.file_jsons = []
+      self.papers = []
+
+      self.json['files'].values.map do |file_json|
+        if file_json['filename'].start_with?("!")
+          self.kanban_json = file_json
+          next
+        end
+
+        paper = RemotePaper.new(file_json, self)
+        paper.parse
+        if paper.valid?
+          self.papers << paper
+        else
+          self.file_jsons << file_json
+        end
+      end
     end
 
     def repo
       json["id"]
     end
 
-    def kanban_json
-      return @kanban_json if defined?(@kanban_json)
-
-      @kanban_json = self.json['files'].values.detect do |attrs|
-        attrs['filename'].start_with?("!")
-      end
-    end
-
-    def papers
-      return @papers if defined?(@papers)
-      @papers = self.json['files'].values.map do |attrs|
-        paper = RemotePaper.new(attrs, self)
-        paper.parse
-        paper.valid? ? paper : nil
-      end.compact
-    end
 
     def find_file_json(filename)
-      paper = papers.detect { |paper| paper.filename == filename }
-      return paper.attrs if paper
-
-      self.json['files'].values.detect do |attrs|
-        attrs['filename'] == filename
+      self.file_jsons.detect do |file_json|
+        file_json['filename'] == filename
       end
+    end
+
+    def find_paper(filename)
+      remote_paper = self.papers.detect { |paper| paper.filename == filename }
     end
 
     def self.load(repo)
