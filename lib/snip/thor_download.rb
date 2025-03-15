@@ -8,8 +8,7 @@ module Snip
       base.class_eval do
         desc "download <repo_hash>", "download a snip gist"
         def download(repo)
-          puts "Fetch gist #{repo} ... "
-          gist = Gist.load(repo)
+          gist = Gist.load(repo, verbose: true)
 
           local_papers = LocalPaper.scan.select do |paper|
             paper.gist_repo == repo

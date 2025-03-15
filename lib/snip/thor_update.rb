@@ -29,8 +29,7 @@ module Snip
               return
             end
 
-            puts "Fetch gist #{local_paper.gist_repo} ... "
-            gist = Gist.load(local_paper.gist_repo)
+            gist = Gist.load(local_paper.gist_repo, verbose: true)
 
             remote_paper = gist.find_paper(local_paper.filename)
             print "Checking #{path} ... "

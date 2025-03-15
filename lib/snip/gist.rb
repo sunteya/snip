@@ -48,9 +48,17 @@ module Snip
       remote_paper = self.papers.detect { |paper| paper.filename == filename }
     end
 
-    def self.load(repo)
+    def self.load(repo, options = {})
+      @cache ||= {}
+      return @cache[repo] if @cache.key?(repo)
+
       json = JSON.parse(URI.open("https://api.github.com/gists/#{repo}").read)
-      Gist.new(json)
+      if options[:verbose]
+        puts "Fetch gist #{repo} ... "
+      end
+
+      @cache[repo] = Gist.new(json)
+      @cache[repo]
     end
   end
 end

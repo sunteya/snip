@@ -1,13 +1,11 @@
 require "thor"
 require 'digest'
 
-require_relative "paper"
-require_relative "command_outdated"
-
 require_relative "thor_upload"
 require_relative "thor_list"
 require_relative "thor_update"
 require_relative "thor_download"
+require_relative "thor_outdated"
 
 module Snip
   class CLI < Thor
@@ -17,8 +15,7 @@ module Snip
     include ThorUpload
     include ThorUpdate
     include ThorDownload
-
-    include CommandOutdated
+    include ThorOutdated
 
     no_commands do
       def is_paper_changed?(local_paper, remote_paper)
