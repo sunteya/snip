@@ -24,13 +24,12 @@ module Snip
     def file_infos
       return @file_infos if defined?(@file_infos)
 
-      root = Pathname.pwd
       dir = Pathname.new(path).dirname
 
       files = (meta["FILES"] || []).flat_map do |pattern|
         dir.glob(pattern)
       end
-      files.delete(Pathname.new(path))
+      files.delete_if { |file| file.realpath == Pathname.new(path).realpath }
 
       @file_infos = files.map do |file|
         {

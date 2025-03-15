@@ -49,8 +49,6 @@ module Snip
             puts Rainbow("Success!").green
           end
         end
-
-
       end
     end
   end
