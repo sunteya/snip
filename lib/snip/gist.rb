@@ -60,5 +60,9 @@ module Snip
       @cache[repo] = Gist.new(json)
       @cache[repo]
     end
+
+    def self.github_gist_url(repo)
+      "https://gist.github.com/#{repo}"
+    end
   end
 end

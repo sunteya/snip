@@ -8,14 +8,31 @@ module Snip
   module ThorUpload
     def self.included(base)
       base.class_eval do
-        desc "upload [--force] <repo_hash>", "upload snip to github gist"
+        desc "upload [--force] <path/hash>", "upload snip to github gist"
         method_option :force, type: :boolean, default: false
-        def upload(repo)
-          gist = Gist.load(repo)
+        def upload(path_or_hash)
+          if File.exist?(path_or_hash)
+            local_paper = LocalPaper.new(path_or_hash)
+            local_paper.parse
+            unless local_paper.valid?
+              puts Rainbow("File is not valid!").red
+              return
+            end
 
-          local_papers = LocalPaper.scan.select do |paper|
-            paper.gist_repo == repo
+            local_papers = [ local_paper ]
+          else
+            local_papers = LocalPaper.scan.select do |paper|
+              paper.gist_repo == path_or_hash
+            end
           end
+
+          if local_papers.empty?
+            puts Rainbow("No local papers found!").red
+            return
+          end
+
+          repo = local_papers.first.gist_repo
+          gist = Gist.load(repo)
 
           performed = false
           local_papers.each do |local_paper|
@@ -48,6 +65,8 @@ module Snip
             Shell::Github.gist_file_touch(repo, gist.kanban_json)
             puts Rainbow("Success!").green
           end
+
+          puts Rainbow("Gist URL: #{Gist.github_gist_url(repo)}").green
         end
       end
     end

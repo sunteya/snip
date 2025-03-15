@@ -6,7 +6,7 @@ module Snip
   module ThorOutdated
     def self.included(base)
       base.class_eval do
-        desc "outdated [gist_repo]", "checks for outdated snips"
+        desc "outdated [hash]", "checks for outdated snips"
         def outdated(gist_repo = nil)
           grouped_local_papers = LocalPaper.scan.filter do |paper|
             gist_repo.nil? || paper.gist_repo == gist_repo
@@ -29,7 +29,7 @@ module Snip
             end
 
             if outdated_local_papers.any?
-              puts Rainbow("https://gist.github.com/#{gist_repo}").yellow
+              puts Rainbow(Gist.github_gist_url(gist_repo)).yellow
               outdated_local_papers.each do |local_paper|
                 print " - #{local_paper.path}"
 

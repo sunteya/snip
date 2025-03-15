@@ -13,7 +13,7 @@ module Snip
           grouped = papers.group_by { |paper| paper.gist_repo }
 
           grouped.each do |gist_repo, papers|
-            puts Rainbow("https://gist.github.com/#{gist_repo}").green
+            puts Rainbow(Gist.github_gist_url(gist_repo)).green
 
             papers.each do |paper|
               print " - #{paper.path}"
