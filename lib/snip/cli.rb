@@ -27,7 +27,7 @@ module Snip
         return true if gist_file_json.nil?
 
         local_digest = Digest::MD5.hexdigest(File.read(info[:path]))
-        remote_digest = Digest::MD5.hexdigest(gist_file_json[:content])
+        remote_digest = Digest::MD5.hexdigest(gist_file_json['content'])
         local_digest != remote_digest
       end
     end

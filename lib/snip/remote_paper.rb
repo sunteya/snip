@@ -22,21 +22,25 @@ module Snip
     end
 
     # file_json = {
-    #   filename: "file.txt",
-    #   content: "...",
+    #   "remote_name" => "file.txt",
+    #   "local_name" => "file.txt",
+    #   "content" => "...",
     # }
     def file_jsons
       return @file_jsons if defined?(@file_jsons)
 
-      (meta["FILES"] || []).flat_map do |pattern|
-        file_jsons = gist.file_jsons.find_all do |file_json|
-          File.fnmatch?(pattern, file_json['filename'])
+      (meta["FILES"] || []).flat_map do |line|
+        local_name, alias_name = line.split("=>").map(&:strip)
+
+        file_jsons = gist.file_jsons.select do |file_json|
+          File.fnmatch?(alias_name || local_name, file_json['filename'])
         end
 
         file_jsons.map do |file_json|
           {
-            filename: file_json['filename'],
-            content: file_json['content'],
+            'remote_name' => file_json['filename'],
+            'local_name' => local_name,
+            'content' => file_json['content'],
           }
         end
       end

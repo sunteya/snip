@@ -1,4 +1,5 @@
 require "terrapin"
+require 'tempfile'
 
 module Snip
   module Shell
@@ -28,7 +29,7 @@ module Snip
           install_required!
 
           begin
-            tmp_file = Tempfile.new(json['filename'])
+            tmp_file = ::Tempfile.new(json['filename'])
             IO.write(tmp_file.path, json['content'])
 
             self.gh("gist edit :repo -a :filename :path").run({

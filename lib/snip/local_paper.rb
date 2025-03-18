@@ -18,7 +18,8 @@ module Snip
     end
 
     # file_info = {
-    #   filename: "file.txt",
+    #   remote_name: "file.txt",
+    #   local_name: "file.txt",
     #   path: "path/to/file.txt",
     # }
     def file_infos
@@ -26,17 +27,19 @@ module Snip
 
       dir = Pathname.new(path).dirname
 
-      files = (meta["FILES"] || []).flat_map do |pattern|
-        dir.glob(pattern)
+      file_infos = (meta["FILES"] || []).flat_map do |line|
+        pattern, alias_name = line.split("=>").map(&:strip)
+        paths = dir.glob(pattern)
+        paths.map do |path|
+          {
+            remote_name: alias_name || path.basename.to_s,
+            local_name: path.basename.to_s,
+            path: path.to_s,
+          }
+        end
       end
-      files.delete_if { |file| file.realpath == Pathname.new(path).realpath }
-
-      @file_infos = files.map do |file|
-        {
-          filename: file.basename.to_s,
-          path: file.to_s,
-        }
-      end
+      file_infos = file_infos.delete_if { |info| Pathname.new(info[:path]).realpath == Pathname.new(path).realpath }
+      file_infos
     end
 
     def self.scan
@@ -45,7 +48,7 @@ module Snip
         paper = LocalPaper.new(path)
         paper.parse
         paper if paper.valid?
-      end.compact.sort_by { |paper| [ paper.gist_repo, paper.path ] }
+      end.compact.sort_by(&:path)
     end
   end
 end

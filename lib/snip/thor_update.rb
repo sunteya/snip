@@ -45,19 +45,19 @@ module Snip
 
             old_file_infos = local_paper&.file_infos || []
             remote_paper.file_jsons.each do |file_json|
-              file_path = File.join(dir, file_json[:filename])
+              file_path = File.join(dir, file_json['local_name'])
               print "Checking #{file_path} ... "
 
               file_info = old_file_infos.detect do |info|
-                info[:filename] == file_json[:filename]
+                info[:local_name] == file_json['local_name']
               end
 
               old_file_infos.delete(file_info)
               if file_info.nil?
-                IO.write(file_path, file_json[:content])
+                IO.write(file_path, file_json['content'])
                 puts Rainbow("Created").green
               elsif is_file_changed?(file_info, file_json)
-                IO.write(file_path, file_json[:content])
+                IO.write(file_path, file_json['content'])
                 puts Rainbow("Updated").green
               else
                 puts Rainbow("No changes").yellow

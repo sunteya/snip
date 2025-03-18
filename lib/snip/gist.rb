@@ -38,9 +38,9 @@ module Snip
     end
 
 
-    def find_file_json(filename)
+    def find_file_json(remote_name)
       self.file_jsons.detect do |file_json|
-        file_json['filename'] == filename
+        file_json['filename'] == remote_name
       end
     end
 

@@ -17,12 +17,11 @@ module Snip
 
             papers.each do |paper|
               print " - #{paper.path}"
+              if paper.file_infos.any?
+                print " (+#{paper.file_infos.size})"
+              end
               print " #{Rainbow(paper.changelogs[0]).bright.white}" if paper.changelogs.any?
               puts ""
-
-              paper.file_infos.each do |info|
-                puts "   #{info[:path]}"
-              end
             end
 
             puts ""

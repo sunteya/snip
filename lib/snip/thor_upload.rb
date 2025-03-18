@@ -48,10 +48,16 @@ module Snip
             end
 
             local_paper.file_infos.each do |info|
-              print "Uploading #{info[:path]} to #{repo} ... "
-              remote_file_json = gist.find_file_json(info[:filename])
+              if info[:remote_name] != info[:local_name]
+                print "Uploading #{info[:path]} => #{info[:remote_name]} to #{repo} ... "
+              else
+                print "Uploading #{info[:path]} to #{repo} ... "
+              end
+
+              remote_file_json = gist.find_file_json(info[:remote_name])
+
               if options[:force] || is_file_changed?(info, remote_file_json)
-                Shell::Github.gist_upload(repo, info[:filename], info[:path])
+                Shell::Github.gist_upload(repo, info[:remote_name], info[:path])
                 puts Rainbow("Success!").green
                 performed = true
               else
